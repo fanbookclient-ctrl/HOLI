@@ -54,6 +54,8 @@ import java.util.Objects;
 @Keep
 @SuppressWarnings("unused")
 public class GameActivity extends SDLActivity {
+	private AdManager adManager;
+
 	@Override
 	protected String getMainSharedObject() {
 		return getContext().getApplicationInfo().nativeLibraryDir + "/libluanti.so";
@@ -87,12 +89,29 @@ public class GameActivity extends SDLActivity {
 	private native void saveSettings();
 
 	@Override
+	protected void onCreate(android.os.Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		// Initialize AdManager for interstitial ads
+		adManager = AdManager.getInstance(this);
+		adManager.loadInterstitialAd();
+	}
+
+	@Override
 	protected void onStop() {
 		super.onStop();
 		// Avoid losing setting changes in case the app is onDestroy()ed later.
 		// Saving stuff in onStop() is recommended in the Android activity
 		// lifecycle documentation.
 		saveSettings();
+	}
+
+	@Override
+	protected void onDestroy() {
+		super.onDestroy();
+		// Release ad manager resources
+		if (adManager != null) {
+			adManager.release();
+		}
 	}
 
 	private NotificationManager mNotifyManager;
@@ -104,6 +123,17 @@ public class GameActivity extends SDLActivity {
 
 	public void showSelectionInputDialog(String[] optionList, int selectedIdx) {
 		runOnUiThread(() -> showSelectionInputDialogUI(optionList, selectedIdx));
+	}
+
+	/**
+	 * Show interstitial ad - can be called from native code or Java
+	 */
+	public void showInterstitialAd() {
+		runOnUiThread(() -> {
+			if (adManager != null) {
+				adManager.showInterstitialAd();
+			}
+		});
 	}
 
 	private void showTextInputDialogUI(String hint, String current, int editType) {
