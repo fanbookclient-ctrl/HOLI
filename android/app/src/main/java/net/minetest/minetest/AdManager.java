@@ -20,6 +20,8 @@ with this program; if not, see <https://www.gnu.org/licenses/>.
 package net.minetest.minetest;
 
 import android.app.Activity;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -78,6 +80,8 @@ public class AdManager {
                     interstitialAd = ad;
                     isLoading = false;
                     setFullScreenContentCallback();
+                    // Show the ad immediately when loaded
+                    showInterstitialAd();
                 }
                 
                 @Override
@@ -85,6 +89,8 @@ public class AdManager {
                     Log.d(TAG, "Failed to load interstitial ad: " + loadAdError.getMessage());
                     interstitialAd = null;
                     isLoading = false;
+                    // Try to load another ad
+                    loadInterstitialAd();
                 }
             }
         );
@@ -103,7 +109,7 @@ public class AdManager {
             public void onAdDismissedFullScreenContent() {
                 Log.d(TAG, "Ad was dismissed.");
                 interstitialAd = null;
-                // Load next ad for future display
+                // Load and show next ad
                 loadInterstitialAd();
             }
             
@@ -111,6 +117,8 @@ public class AdManager {
             public void onAdFailedToShowFullScreenContent(@NonNull AdError adError) {
                 Log.d(TAG, "Ad failed to show: " + adError.getMessage());
                 interstitialAd = null;
+                // Try to load another ad
+                loadInterstitialAd();
             }
             
             @Override
@@ -134,12 +142,16 @@ public class AdManager {
      * Show interstitial ad if available
      */
     public void showInterstitialAd() {
-        if (interstitialAd != null) {
-            interstitialAd.show(activity);
+        if (interstitialAd != null && activity != null) {
+            try {
+                interstitialAd.show(activity);
+            } catch (Exception e) {
+                Log.e(TAG, "Error showing interstitial ad: " + e.getMessage());
+                interstitialAd = null;
+                loadInterstitialAd();
+            }
         } else {
             Log.d(TAG, "Interstitial ad is not ready.");
-            // Try to load an ad for next time
-            loadInterstitialAd();
         }
     }
     
